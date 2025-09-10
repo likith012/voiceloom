@@ -1,2 +1,47 @@
-**/data
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+*.so
+*.egg-info/
+.eggs/
+*.log
+*.sqlite3
+*.db
+
+# Virtualenvs
+.venv/
+venv/
+env/
+ENV/
+
+# FastAPI project data
+**/data/
 **/data/*
+
+# Editor/IDE configs
+.vscode/
+.idea/
+*.iml
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build / dist
+build/
+dist/
+*.tar.gz
+*.whl

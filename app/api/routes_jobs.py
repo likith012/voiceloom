@@ -41,17 +41,21 @@ def create_job(
     """
     Create a TTS job. The request includes:
     - script: full text with [Role] tags
-    - roles: Role names
+    - roles: role names present in the script
+    Pipeline: PENDING → SYNTHESIZING → ALIGNING → READY
     """
     # For oversized scripts
     if len(body.script) > manager.max_text_chars:
-        raise HTTPException(status_code=413, detail="script too large")
-    
+        raise HTTPException(
+            status_code=413,
+            detail=f"Script too large. Must be ≤ {manager.max_text_chars} characters.",
+        )
+
     if not body.roles:
-        raise HTTPException(status_code=400, detail="roles must include at least one role")
+        raise HTTPException(status_code=400, detail="Must include at least one role")
 
     job_id = manager.create_job(body)
-    background.add_task(manager.run_job, job_id) # Background work (synthesis -> mastering -> alignment)
+    background.add_task(manager.run_job, job_id)  # Background task
     return JobCreateResponse(jobId=job_id)
 
 
@@ -59,30 +63,30 @@ def create_job(
 def get_job_status(job_id: str, manager: JobManager = Depends(get_manager)) -> JobStatus:
     status = manager.get_status(job_id)
     if status is None:
-        raise HTTPException(status_code=404, detail="job not found")
+        raise HTTPException(status_code=404, detail="Job not found.")
     return status
 
 
 @router.get("/jobs/{job_id}/manifest", response_model=Manifest)
 def get_manifest(job_id: str, manager: JobManager = Depends(get_manager)) -> Manifest:
     if not manager.exists(job_id):
-        raise HTTPException(status_code=404, detail="job not found")
+        raise HTTPException(status_code=404, detail="Job not found.")
     try:
         return manager.get_manifest(job_id)
     except FileNotFoundError:
         st = manager.get_status(job_id)
         if st and st.state == JobState.FAILED:
-            raise HTTPException(status_code=400, detail=st.error or "job failed")
-        raise HTTPException(status_code=409, detail="job not ready")
+            raise HTTPException(status_code=400, detail=st.error or "Job failed.")
+        raise HTTPException(status_code=409, detail="Job not ready.")
 
 
 @router.get("/jobs/{job_id}/audio")
 def get_audio(job_id: str, manager: JobManager = Depends(get_manager)) -> FileResponse:
     if not manager.exists(job_id):
-        raise HTTPException(status_code=404, detail="job not found")
+        raise HTTPException(status_code=404, detail="Job not found.")
     path = manager.get_audio_path(job_id)
     if not path.exists():
-        raise HTTPException(status_code=409, detail="audio not ready")
+        raise HTTPException(status_code=409, detail="Audio not ready.")
     media_type = "audio/wav" if path.suffix.lower() == ".wav" else "audio/mpeg"
     return FileResponse(path, media_type=media_type, filename=path.name)
 
@@ -90,8 +94,8 @@ def get_audio(job_id: str, manager: JobManager = Depends(get_manager)) -> FileRe
 @router.get("/jobs/{job_id}/timings")
 def get_timings(job_id: str, manager: JobManager = Depends(get_manager)) -> JSONResponse:
     if not manager.exists(job_id):
-        raise HTTPException(status_code=404, detail="job not found")
+        raise HTTPException(status_code=404, detail="Job not found.")
     path = manager.get_timings_path(job_id)
     if not path.exists():
-        raise HTTPException(status_code=409, detail="timings not ready")
+        raise HTTPException(status_code=409, detail="Timings not ready.")
     return JSONResponse(manager.read_timings(job_id))

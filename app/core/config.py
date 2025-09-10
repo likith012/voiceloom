@@ -19,6 +19,10 @@ class Settings(BaseModel):
     # --- Google ---
     google_api_key: str = os.getenv("GOOGLE_API_KEY", "")
     tts_model: str = os.getenv("TTS_MODEL", "gemini-2.5-flash-preview-tts")
+    
+    # --- TTS Instructions ---
+    use_instructions: bool = os.getenv("USE_INSTRUCTIONS", "false").lower() == "true"
+    instructions_filename: str = os.getenv("INSTRUCTIONS_FILENAME", "instructions.txt")
 
     # --- Dev Storage ---
     data_dir: Path = Path(os.getenv("DATA_DIR", "./data")).resolve()
@@ -45,6 +49,10 @@ class Settings(BaseModel):
     @property
     def cache_path(self) -> Path:
         return self.data_dir / self.cache_dirname
+    
+    @property
+    def instructions_path(self) -> Path:
+        return Path(__file__).resolve().parents[1] / "config" / self.instructions_filename
 
     def ensure_dirs(self) -> None:
         """Create directories if they don't exist."""

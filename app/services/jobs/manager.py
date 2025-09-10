@@ -3,16 +3,26 @@ import os
 import shutil
 import time
 import uuid
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional, List
 
+from app.core.instructions import prepend_tts_instructions
 from app.domain.schemas import JobCreate, JobStatus, Manifest, SpeakerRegistry
 from app.domain.states import JobState, can_transition
 from app.domain.roles import resolve_registry
 from app.services.synth.singlepass import synthesize_single_pass  
-from app.core.cache import make_cache_key, lookup_origin_job
-# from app.services.align.aligner import align_audio
+from app.core.cache import make_cache_key, lookup_origin_job, record_origin_job
+from app.services.align.aligner import align_audio
+from app.core.logging import get_logger
+from app.services.process.mastering import (
+    parse_text,
+    build_ui_script,
+    build_alignment_text_from_ui,
+)
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -77,8 +87,9 @@ class JobManager:
         jd.mkdir(parents=True, exist_ok=True)
 
         # Persist request
-        self._write_json(jd / "request.json", body.model_dump(mode="json"))
-        (jd / "script.txt").write_text(body.script, encoding="utf-8")
+        if logger.isEnabledFor(logging.DEBUG):
+            self._write_json(jd / "request.json", body.model_dump(mode="json"))
+            (jd / "script.txt").write_text(body.script, encoding="utf-8")
 
         # Initialize status
         now = time.time()
@@ -108,40 +119,51 @@ class JobManager:
                     self._app_root / "config" / "voices.yaml",
                 ],
             )
-            
+
+            doc = parse_text(script)
+            ui_script = build_ui_script(doc)
+            alignment_script = build_alignment_text_from_ui(ui_script)
+
+            effective_script = prepend_tts_instructions(script)
+
             # --- Cache Hit ---
-            
+
             cache_key = make_cache_key(script, registry, self.cfg.tts_model)
             origin_job = lookup_origin_job(self.cfg.cache_dir, cache_key)
             jd = self._job_dir(job_id)
             
             if origin_job and self._is_ready_job(origin_job):
+                logger.info(f"Cache hit for job {job_id}, using origin job {origin_job}")
                 origin_audio = self._job_dir(origin_job) / "tts_out.wav"
                 origin_timings = self._job_dir(origin_job) / "timings.json"
 
                 if not origin_audio.exists() or not origin_timings.exists():
-                    raise RuntimeError(f"Cache inconsistency: READY job {origin_job} missing artifacts")
+                    msg = f"Cache inconsistency: READY job {origin_job} missing artifacts"
+                    logger.error(msg)
+                    raise RuntimeError(msg)
 
                 self._link_or_copy(origin_audio, jd / "tts_out.wav")
                 self._link_or_copy(origin_timings, jd / "timings.json")
 
-                self._transition(job_id, JobState.MASTERING)
-
                 manifest = Manifest(
                     audioUrl=f"/v1/tts/jobs/{job_id}/audio",
                     timingsUrl=f"/v1/tts/jobs/{job_id}/timings",
-                    script=script,
+                    script=ui_script,
                 )
                 self._write_json(jd / "manifest.json", manifest.model_dump(mode="json"))
 
+                self._transition(job_id, JobState.ALIGNING)
                 self._transition(job_id, JobState.READY)
                 return
             
             # --- Cache Miss ---
+            logger.info(f"Cache miss for job {job_id}")
 
             # 1) Synthesis
+            logger.info(f"Starting synthesis for job {job_id}")
+            
             audio_path = synthesize_single_pass(
-                script=script,
+                script=effective_script,
                 registry=registry,
                 output_dir=self._job_dir(job_id),
                 output_basename="tts_out",  
@@ -149,33 +171,41 @@ class JobManager:
                 tts_model=self.cfg.tts_model,
                 request_timeout_sec=self.cfg.request_timeout_sec,
             )
+            logger.info(f"Synthesis complete for job {job_id}, audio at {audio_path}")
 
-            # 2) Mastering - currently passthrough
-            self._transition(job_id, JobState.MASTERING)
-
-            # # 3) Alignment
-            # self._transition(job_id, JobState.ALIGNING)
-            # timings = align_audio(
-            #     audio_path=audio_path,
-            #     script=script,
-            #     model_name=self.cfg.whisper_model,
-            #     device=self.cfg.whisper_device,
-            #     compute_type=self.cfg.whisper_compute_type,
-            # )
-            # self._write_json(self._job_dir(job_id) / "timings.json", timings)
+            # 2) Alignment
+            self._transition(job_id, JobState.ALIGNING)
+            logger.info(f"Starting alignment for job {job_id}")
             
-            # # Manifest
-            # manifest = Manifest(
-            #     audioUrl=f"/v1/tts/jobs/{job_id}/audio",
-            #     timingsUrl=f"/v1/tts/jobs/{job_id}/timings",
-            #     script=script,
-            # )
-            # self._write_json(self._job_dir(job_id) / "manifest.json", manifest.model_dump(mode="json"))
+            timings = align_audio(
+                audio_path=audio_path,
+                script=alignment_script,
+                model_name=self.cfg.whisper_model,
+                device=self.cfg.whisper_device,
+                compute_type=self.cfg.whisper_compute_type,
+            )
+            self._write_json(self._job_dir(job_id) / "timings.json", timings)
+            logger.info(f"Alignment complete for job {job_id}")
+            
+            # Manifest
+            manifest = Manifest(
+                audioUrl=f"/v1/tts/jobs/{job_id}/audio",
+                timingsUrl=f"/v1/tts/jobs/{job_id}/timings",
+                script=ui_script,
+            )
+            self._write_json(self._job_dir(job_id) / "manifest.json", manifest.model_dump(mode="json"))
+            
+            if logger.isEnabledFor(logging.DEBUG):
+                (self._job_dir(job_id) / "ui_script.txt").write_text(ui_script, encoding="utf-8")
+                (self._job_dir(job_id) / "alignment_script.txt").write_text(alignment_script, encoding="utf-8")
 
-            # # 4) Ready
-            # self._transition(job_id, JobState.READY)
+            self._transition(job_id, JobState.READY)
+            logger.info(f"Job {job_id} is READY")
+
+            record_origin_job(self.cfg.cache_dir, cache_key, job_id)  # Record cache (only after READY succeeds)
 
         except Exception as e:
+            logger.error(f"Job {job_id} failed: {e}", exc_info=True)
             self._transition(job_id, JobState.FAILED, error=str(e))
             
     def _is_ready_job(self, job_id: str) -> bool:
@@ -240,22 +270,22 @@ class JobManager:
     def _read_request(self, job_id: str) -> Dict[str, Any]:
         return self._read_json(self._job_dir(job_id) / "request.json") or {}
 
-    def _transition(self, job_id: str, dst: JobState, error: Optional[str] = None) -> None:
+    def _transition(self, job_id: str, dst_state: JobState, error: Optional[str] = None) -> None:
         st_path = self._job_dir(job_id) / "status.json"
         st = self._read_json(st_path)
         if not st:
             raise RuntimeError("job status missing")
 
-        src = JobState(st["state"])
-        if not can_transition(src, dst):
+        src_state = JobState(st["state"])
+        if not can_transition(src_state, dst_state):
             # Still update error + updatedAt, but keep remaining state
             if error:
                 st["error"] = error
                 st["updatedAt"] = time.time()
                 self._write_json(st_path, st)
-            raise RuntimeError(f"invalid transition {src.value} -> {dst.value}")
+            raise RuntimeError(f"Invalid state transition: {src_state.value} -> {dst_state.value}")
 
-        st["state"] = dst.value
+        st["state"] = dst_state.value
         if error:
             st["error"] = error
         st["updatedAt"] = time.time()
@@ -273,4 +303,3 @@ class JobManager:
             return None
         with path.open("r", encoding="utf-8") as f:
             return json.load(f)
-
