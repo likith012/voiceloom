@@ -128,7 +128,7 @@ class JobManager:
 
             # --- Cache Hit ---
 
-            cache_key = make_cache_key(script, registry, self.cfg.tts_model)
+            cache_key = make_cache_key(alignment_script, registry, self.cfg.tts_model)
             origin_job = lookup_origin_job(self.cfg.cache_dir, cache_key)
             jd = self._job_dir(job_id)
             

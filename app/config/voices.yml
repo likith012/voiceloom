@@ -1,10 +1,4 @@
-Narrator:
-  name: Kore
-Protagonist_M:
-  name: Puck
-Protagonist_F:
-  name: Sera
-Support_M:
-  name: Ajax
-Support_F:
-  name: Puck
+Female_Voice:
+  name: Aoede # Gacrux, Callirrhoe
+Male_Voice:
+  name: Achird # Enceladus

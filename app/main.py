@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -25,19 +23,16 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=False, 
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# --- UI static serving ---
-ui_dir = Path(__file__).resolve().parent.parent / "ui"
-app.mount("/static", StaticFiles(directory=ui_dir), name="static")
-
-@app.get("/", include_in_schema=False)
-def serve_index():
-    index_path = ui_dir / "index.html"
-    return FileResponse(index_path)
-
 # --- Routes ---
 app.include_router(jobs_router, prefix="/v1/tts", tags=["tts"])
+
+# --- UI static serving ---
+ui_dist = Path(__file__).resolve().parents[1] / "ui" / "dist"
+if ui_dist.exists():
+    app.mount("/", StaticFiles(directory=ui_dist, html=True), name="ui")
+    

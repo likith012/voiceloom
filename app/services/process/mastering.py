@@ -1,13 +1,14 @@
 import re
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 
 
 # ---------- Data types ----------
 
 @dataclass
 class ScriptLine:
-    role: str
+    role: str                     # Voice-engine role
+    character: Optional[str]      # Character label
     text: str                     # full spoken text (may contain inline () cues)
     simple_cues: List[str]        # lower-case () cues
     control_cues: List[str]       # UPPER_SNAKE_CASE () cues
@@ -25,8 +26,16 @@ _STYLE_HDR = re.compile(r"^\s*STYLE DESCRIPTION:\s*$", re.IGNORECASE)
 _ACTION_HDR = re.compile(r"^\s*ACTION DICTIONARY:\s*$", re.IGNORECASE)
 _SCRIPT_HDR = re.compile(r"^\s*SCRIPT:\s*$", re.IGNORECASE)
 
-# script line: [Role] utterance
-_ROLE_LINE = re.compile(r"^\s*\[(?P<role>[^\]]+)\]\s*(?P<text>.*)$")
+# script line: [EngineRole] (optional <Character>) utterance...
+_ROLE_LINE = re.compile(
+    r"""^\s*\[
+        (?P<role>[^\]]+)
+      \]\s*
+      (?:<(?P<char>[^>]+)>\s*[:\-]?\s*)?
+      (?P<text>.*)$
+    """,
+    re.VERBOSE,
+)
 
 # inline cues: (...)
 _PAREN_GROUP = re.compile(r"\(([^)]*)\)")
@@ -45,18 +54,24 @@ def parse_text(text: str) -> ParsedDoc:
     for raw in _to_nonempty_lines(script_block):
         m = _ROLE_LINE.match(raw)
         if not m:
-            # strictly enforce your spec; if a line doesn't match, skip it
-            # (or raise ValueError if you prefer hard failure)
+            # skip lines that don't conform
             continue
-        role = m.group("role").strip()
-        utter = m.group("text").strip()
 
-        # Extract inline cues
+        role = (m.group("role") or "").strip()
+        char = (m.group("char") or "").strip() or None
+        utter = (m.group("text") or "").strip()
+
         simple, control = _classify_cues(utter)
 
-        # We keep the original utterance for TTS, but when we build UI/alignment
-        # we will remove parentheses content as needed.
-        lines.append(ScriptLine(role=role, text=utter, simple_cues=simple, control_cues=control))
+        lines.append(
+            ScriptLine(
+                role=role,
+                character=char,
+                text=utter,
+                simple_cues=simple,
+                control_cues=control,
+            )
+        )
 
     return ParsedDoc(styles_raw=style_block, actions_raw=action_block, lines=lines)
 
@@ -64,6 +79,7 @@ def parse_text(text: str) -> ParsedDoc:
 def _split_sections(text: str) -> Tuple[str, str, str]:
     lines = text.splitlines()
     idx_style = idx_action = idx_script = None
+
     for i, ln in enumerate(lines):
         if idx_style is None and _STYLE_HDR.match(ln):
             idx_style = i
@@ -75,18 +91,22 @@ def _split_sections(text: str) -> Tuple[str, str, str]:
     if idx_script is None:
         raise ValueError("SCRIPT: section is required")
 
-    # slice blocks
-    def block(start: int | None, end: int | None) -> str:
+    def block(start: Optional[int], end: Optional[int]) -> str:
+        """
+        Return text between header (exclusive) and 'end' (exclusive).
+        """
         if start is None:
             return ""
-        # skip the header line (STYLE DESCRIPTION) itself
-        start += 1
+        start += 1  # skip the header line itself
         if end is None:
             end = len(lines)
         return "\n".join(lines[start:end]).strip()
 
     # ensures sections don’t run into each other.
-    next_after_style = min([i for i in [idx_action, idx_script] if i is not None], default=len(lines))
+    next_after_style = min(
+        [i for i in (idx_action, idx_script) if i is not None],
+        default=len(lines),
+    )
     next_after_action = idx_script if idx_script is not None else len(lines)
 
     # extract blocks
@@ -110,7 +130,7 @@ def _classify_cues(utter: str) -> Tuple[List[str], List[str]]:
         inner = (m.group(1) or "").strip()
         if not inner:
             continue
-        if inner.upper() == inner and re.fullmatch(r"[A-Z0-9_]+", inner):
+        if re.fullmatch(r"[A-Z0-9_]+", inner):
             control.append(inner)
         else:
             simple.append(inner)
@@ -125,31 +145,40 @@ _PAREN_STRIP = re.compile(r"\([^)]*\)")
 # remove leading [Role]
 _ROLE_TAG = re.compile(r"^\s*\[[^\]]+\]\s*")
 
+# Remove leading <Character> 
+_CHAR_TAG = re.compile(r"^\s*<[^>]+>\s*[:\-]?\s*")
+
 
 def build_ui_script(doc: ParsedDoc) -> str:
     """
     Input to the UI layer.
       - Drop STYLE DESCRIPTION and ACTION DICTIONARY sections entirely.
-      - Keep speaker tag lines: [Role] utterance
+      - Remove engine roles [Role].
+      - Prefer <Character> for display; if missing, fall back to <role>.
+      - Preserve inline cues (...) so users can see expressive guidance.
     """
     out_lines: List[str] = []
     for line in doc.lines:
-        if line.text.strip():
-            out_lines.append(f"[{line.role}] {line.text.strip()}")
+        if not line.text.strip():
+            continue
+        display_name = line.character or line.role
+        out_lines.append(f"<{display_name}> {line.text.strip()}")
     return "\n".join(out_lines).strip()
 
 
 def build_alignment_text_from_ui(ui_script: str) -> str:
     """
-    Input for alignment model. 
-      - Remove [Role] tags
-      - Remove () cues
-      - Collapse whitespace
+    Build text for alignment:
+      - Remove <Character> display tags (if present).
+      - Remove all (...) cues.
+      - Collapse whitespace.
+      - Result is plain spoken text aligned to audio.
     """
     lines: List[str] = []
     for raw in ui_script.splitlines():
-        txt = _ROLE_TAG.sub("", raw)          # remove [Role]
-        txt = _PAREN_STRIP.sub("", txt)       # remove cues
+        txt = _ROLE_TAG.sub("", raw)
+        txt = _CHAR_TAG.sub("", txt)
+        txt = _PAREN_STRIP.sub("", txt)
         txt = re.sub(r"\s+", " ", txt).strip()
         if txt:
             lines.append(txt)
