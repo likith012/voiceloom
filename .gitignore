@@ -1,19 +1,34 @@
 # OS junk
-.DS_Store
-Thumbs.db
+**/.DS_Store
+**/Thumbs.db
+**/Desktop.ini
 
 # Python
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *.pyo
 *.pyd
-*.pdb
 *.so
+*.egg
 *.egg-info/
 .eggs/
 *.log
 *.sqlite3
 *.db
+
+# Packaging 
+build/
+dist/
+.wheelhouse/
+
+# Linters / Test
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
 
 # Virtualenvs
 .venv/
@@ -22,8 +37,9 @@ env/
 ENV/
 
 # FastAPI project data
-**/data/
-**/data/*
+data/
+logs/
+*.log
 
 # Editor/IDE configs
 .vscode/
@@ -34,14 +50,27 @@ ENV/
 .env
 .env.local
 .env.*.local
+**/.env
+**/.env.local
+**/.env.*.local
 
-# Pytest / coverage
-.pytest_cache/
-.coverage
-htmlcov/
+# Node modules anywhere
+**/node_modules/
 
-# Build / dist
-build/
-dist/
-*.tar.gz
-*.whl
+# Vite build
+ui/dist/
+ui/build/
+**/.vite/
+**/.vite-deps/
+**/.cache/
+**/.parcel-cache/
+**/.eslintcache
+**/.turbo
+**/.nyc_output
+**/coverage/
+
+# Package manager logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
