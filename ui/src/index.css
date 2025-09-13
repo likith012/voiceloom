@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* nice scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #3f3f46 transparent;
+}
+
+
+@layer utilities {
+  .shadow-soft { box-shadow: 0 10px 30px rgba(17 24 39 / 0.08); }
+}
+
+/* Removed old custom token + themed-* classes; daisyUI themes now handle styling */

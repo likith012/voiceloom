@@ -1,0 +1,22 @@
+/* ui/src/App.css */
+
+:root {
+  --vl-bg: 255 255 255;
+  --vl-fg: 24 24 27;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --vl-bg: 9 9 11;
+    --vl-fg: 244 244 245;
+  }
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background-color: rgb(var(--vl-bg));
+  color: rgb(var(--vl-fg));
+}
