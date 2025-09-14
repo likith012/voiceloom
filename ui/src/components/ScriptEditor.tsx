@@ -18,7 +18,7 @@ export default function ScriptEditor({ value, onChange, disabled }: Props) {
       <textarea
         id={id}
         className="textarea textarea-bordered w-full h-48 leading-relaxed resize-vertical"
-        placeholder="Paste your text here. Optional sections: STYLE DESCRIPTION, ACTION DICTIONARY. SCRIPT is required."
+  placeholder="Paste your script here."
         value={value}
         onChange={(e) => onChange(e.target.value)}
         disabled={disabled}

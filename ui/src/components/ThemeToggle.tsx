@@ -1,42 +1,75 @@
-const KEY = 'voiceloom.theme';
+import React from 'react';
+import { Button } from './ui-kit/button';
+import { useTheme } from './ThemeProvider';
+import { Sun, Moon, Monitor } from 'lucide-react';
+import { motion } from 'motion/react';
 
-function getCurrentTheme(): 'light' | 'dark' {
-  if (typeof document === 'undefined') return 'light';
-  const attr = document.documentElement.getAttribute('data-theme');
-  if (attr === 'dark') return 'dark';
-  return 'light';
-}
+export const ThemeToggle = React.memo(function ThemeToggle() {
+  const { theme, setTheme } = useTheme();
 
-export default function ThemeToggle() {
-  const theme = getCurrentTheme();
-  const isDark = theme === 'dark';
+  const toggleTheme = () => {
+    if (theme === 'light') {
+      setTheme('dark');
+    } else if (theme === 'dark') {
+      setTheme('system');
+    } else {
+      setTheme('light');
+    }
+  };
 
-  const toggle = () => {
-    const next = getCurrentTheme() === 'dark' ? 'light' : 'dark';
-    const root = document.documentElement;
-    root.setAttribute('data-theme', next);
-    // Optionally also toggle 'dark' class for any Tailwind dark: utilities
-    if (next === 'dark') root.classList.add('dark'); else root.classList.remove('dark');
-    try { localStorage.setItem(KEY, next); } catch {}
+  const getIcon = () => {
+    switch (theme) {
+      case 'light':
+        return <Sun className="w-4 h-4" />;
+      case 'dark':
+        return <Moon className="w-4 h-4" />;
+      case 'system':
+        return <Monitor className="w-4 h-4" />;
+    }
+  };
+
+  const getLabel = () => {
+    switch (theme) {
+      case 'light':
+        return 'Light';
+      case 'dark':
+        return 'Dark';
+      case 'system':
+        return 'System';
+    }
   };
 
   return (
-    <button
-      type="button"
-      onClick={toggle}
-      className="btn btn-ghost btn-sm"
-      aria-label="Toggle dark mode"
-    >
-      {isDark ? (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
-          <circle cx="12" cy="12" r="4" />
-          <path d="M12 3v2m0 14v2m9-9h-2M5 12H3m15.364 6.364-1.414-1.414M8.05 8.05 6.636 6.636m0 10.728 1.414-1.414m9.9-9.9-1.414 1.414" />
-        </svg>
-      ) : (
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-5 h-5">
-          <path d="M21 12.79A9 9 0 0 1 11.21 3 7 7 0 1 0 21 12.79Z" />
-        </svg>
-      )}
-    </button>
+    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={toggleTheme}
+        className="h-9 px-3 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-200/50 dark:border-slate-700/50 hover:bg-white/80 dark:hover:bg-slate-800/80 transition-all duration-200 no-underline"
+        aria-label={`Theme: ${getLabel()}`}
+      >
+        <div className="flex items-center gap-2">
+          <motion.div
+            key={theme}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
+          >
+            {getIcon()}
+          </motion.div>
+          <motion.span
+            key={`${theme}-label`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="text-sm font-medium hidden sm:inline w-12 text-left"
+          >
+            {getLabel()}
+          </motion.span>
+        </div>
+      </Button>
+    </motion.div>
   );
-}
+});
+
+export default ThemeToggle;

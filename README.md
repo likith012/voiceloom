@@ -50,3 +50,38 @@ WHISPER_DEVICE=cpu
 ```bash
 uvicorn app.main:app --reload --port 8000
 ```
+
+## 📱 Install as a PWA (Mobile & Desktop)
+
+The UI is now a Progressive Web App. After you build the UI, FastAPI serves the static assets, including the service worker and manifest.
+
+### Build the UI
+```bash
+npm --prefix ui install --legacy-peer-deps
+npm --prefix ui run build
+```
+This generates `ui/dist`, including `sw.js` and `manifest.webmanifest`.
+
+Note: This repository intentionally keeps all Node dependencies scoped to the `ui/` folder. Avoid running `npm install` at the repository root so you don’t create a root-level `package-lock.json`. Use `--prefix ui` or run commands inside the `ui/` directory.
+
+### Serve via FastAPI
+`app/main.py` auto-mounts `ui/dist` at `/` when it exists. Run the server and open:
+- http://localhost:8000
+
+### Install prompts
+- Desktop (Chrome/Edge): You’ll see an Install icon in the address bar. Click to install.
+- Android (Chrome): Menu → Add to Home screen.
+- iOS (Safari): Share → Add to Home Screen.
+
+### HTTPS note
+Service workers require HTTPS in production. For local development, http://localhost is allowed. When deploying, serve over HTTPS (reverse proxy / CDN) to enable offline support and install prompts.
+
+### Update behavior
+The service worker is set to auto-update. When a new build is available, the app refreshes to the latest version. You can customize this in `ui/src/main.tsx` by replacing the auto-refresh with a toast/confirm flow.
+
+### Icons
+Place branded icons in `ui/public/`:
+- `pwa-192x192.png`, `pwa-512x512.png`, `pwa-maskable-512x512.png`, `apple-touch-icon.png`
+
+Replace the placeholders with your graphics to improve the install experience on mobile and desktop.
+

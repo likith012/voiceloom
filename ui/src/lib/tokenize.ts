@@ -1,4 +1,4 @@
-// Parse UI script into structured lines with character names and cues.
+// Parse UI script into lines with cues.
 export type TextPart =
   | { type: "text"; value: string }
   | { type: "cue"; raw: string; display: string };
@@ -13,9 +13,7 @@ export interface UILine {
 }
 
 /**
- * Parse UI script into UILines. Expected format per line:
- *   <Name> free text ... (CUE_OR_NOTE) ...
- * The engine [Role] tags are already removed by the backend.
+ * Parse UI script into UILines.
  */
 export function parseUIScript(uiScript: string): UILine[] {
   const lines: UILine[] = [];
@@ -23,8 +21,7 @@ export function parseUIScript(uiScript: string): UILine[] {
     const ln = raw.trim();
     if (!ln) continue;
 
-    // Optional engine tag [Something] may still appear in rare cases; ignore it.
-    // Capture optional <Name> and the rest as body.
+  // Ignore optional engine tags; capture optional <Name> and body.
     const m = ln.match(/^(?:\[[^\]]+\]\s*)?(?:<([^>]+)>\s*)?(.*)$/);
     if (!m) continue;
 
@@ -80,12 +77,19 @@ function splitTextAndCues(body: string): TextPart[] {
     parts.push({ type: "text", value: body.slice(idx) });
   }
 
-  // Merge adjacent text nodes
+  // Merge adjacent text
   return mergeAdjacentText(parts);
 }
 
 function humanizeCue(s: string): string {
-  return s.replace(/_/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
+  const trimmed = s.trim();
+  // Convert UPPER_SNAKE_CASE cues to lowercase with spaces
+  const isUpperSnake = /_/.test(trimmed) && /^[A-Z0-9_]+$/.test(trimmed);
+  if (isUpperSnake) {
+    return trimmed.toLowerCase().replace(/_/g, " ").replace(/\s+/g, " ").trim();
+  }
+  // Otherwise preserve
+  return trimmed;
 }
 
 function mergeAdjacentText(parts: TextPart[]): TextPart[] {

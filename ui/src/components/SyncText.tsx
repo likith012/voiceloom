@@ -52,6 +52,8 @@ export default function SyncText({ uiScript, timingsUrl, currentTime }: Props) {
 
   return (
     <div className="space-y-3">
+      {/* keep position computed for future highlight; reference to satisfy TS */}
+      {position && <span className="hidden">{position.idx}</span>}
       {words && (
   <div className="text-xs text-base-content/60">
           {currentTime !== undefined ? `t=${currentTime.toFixed(2)}s` : null} ·
