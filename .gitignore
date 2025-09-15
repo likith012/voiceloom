@@ -78,3 +78,6 @@ pnpm-debug.log*
 # Node files
 /package-lock.json
 /package.json
+
+# Certificates
+certs/
