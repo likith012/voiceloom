@@ -38,7 +38,7 @@ interface TimingsResponse { words: WordTiming[] }
 // Utility
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// Extract role names from SCRIPT section
+// Extract roles from SCRIPT
 function extractRoles(structuredText: string): string[] {
   const script = structuredText.split("SCRIPT:")[1] ?? structuredText;
   const roles = new Set<string>();
@@ -49,7 +49,7 @@ function extractRoles(structuredText: string): string[] {
   return Array.from(roles);
 }
 
-// Normalize role names to Title_Case_With_Underscores
+// Normalize roles to Title_Case_With_Underscores
 function normalizeRoleName(raw: string): string {
   let s = (raw ?? "").trim();
   if ((s.startsWith("\"") && s.endsWith("\"")) || (s.startsWith("'") && s.endsWith("'"))) {
@@ -86,7 +86,7 @@ export interface DisplayLine {
   length: number;
 }
 
-// Build words and display lines
+// Build words + display lines
 function buildDisplayFrom(manifestScript: string, timings: WordTiming[]): { words: Word[]; displayLines: DisplayLine[] } {
   const uiLines: UILine[] = parseUIScript(manifestScript);
 
@@ -131,12 +131,12 @@ function buildDisplayFrom(manifestScript: string, timings: WordTiming[]): { word
   }
 
 
-  // Map UI tokens to backend timings
+  // Map UI tokens -> timings
   const tokenCount = flatTokens.length;
   const timingCount = timings.length;
   const count = Math.min(tokenCount, timingCount);
 
-  // Clamp if counts differ
+  // Clamp if lengths differ
   if (tokenCount !== timingCount) {
     if (import.meta.env.DEV) {
       console.warn(
@@ -157,7 +157,7 @@ function buildDisplayFrom(manifestScript: string, timings: WordTiming[]): { word
     };
   }
 
-  // Shrink display parts if clamped
+  // Shrink parts if clamped
   if (count < tokenCount) {
     for (const line of displayLines) {
       const newParts: DisplayTextPart[] = [];
@@ -233,7 +233,7 @@ export default function AppContent() {
     setCharacterColors(result);
   }
 
-  // API flow: create job -> poll -> fetch manifest/timings -> map
+  // Flow: create job -> poll -> fetch manifest/timings -> map
   const processTTS = async (
     structuredText: string,
   ): Promise<TTSResult> => {
@@ -295,7 +295,7 @@ export default function AppContent() {
     return { audioUrl: manifest.audioUrl, words, duration, displayLines };
   };
 
-  // Throttled time updates
+  // Throttle time updates
   const lastUpdateRef = useRef(0);
   const handleTimeUpdate = useCallback((time: number) => {
     const now = performance.now();
@@ -305,7 +305,7 @@ export default function AppContent() {
   }, []);
 
   const handleWordClick = useCallback((time: number) => {
-  // ensure repeated same-time clicks trigger a new effect
+  // force effect on repeated same-time clicks
     setSeekRequest({ time, token: Date.now() });
   }, []);
 
@@ -334,20 +334,20 @@ export default function AppContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      {/* Animated background pattern */}
+  {/* Background pattern */}
       <div className="fixed inset-0 bg-[url('data:image/svg+xml,%3Csvg%20width%3D%2260%22%20height%3D%2260%22%20viewBox%3D%220%200%2060%2060%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cg%20fill%3D%22none%22%20fill-rule%3D%22evenodd%22%3E%3Cg%20fill%3D%22%236366f1%22%20fill-opacity%3D%220.02%22%3E%3Ccircle%20cx%3D%2230%22%20cy%3D%2230%22%20r%3D%222%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-60" />
 
       <div className="relative flex flex-col min-h-screen">
-        {/* Header */}
+  {/* Header */}
         <Header
           jobId={jobId || undefined}
           jobState={jobState || undefined}
         />
 
-        {/* Main Content */}
+  {/* Main */}
         <main className="flex-1">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-6xl">
-            {/* Hero Section - Only show when no result */}
+            {/* Hero (when no result) */}
             {!ttsResult && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -364,7 +364,7 @@ export default function AppContent() {
               </motion.div>
             )}
 
-            {/* Input Section */}
+            {/* Input */}
             <div className="space-y-8">
               <AnimatePresence mode="wait">
                 <motion.div
@@ -382,7 +382,7 @@ export default function AppContent() {
                 </motion.div>
               </AnimatePresence>
 
-              {/* Results Section */}
+              {/* Results */}
               <AnimatePresence>
                 {ttsResult && (
                   <motion.div
@@ -391,7 +391,7 @@ export default function AppContent() {
                     transition={{ duration: 0.6, delay: 0.2 }}
                     className="space-y-4"
                   >
-                    {/* Script Display */}
+                    {/* Script */}
                     <FormattedTextDisplay
                       words={ttsResult.words}
                       displayLines={ttsResult.displayLines}
@@ -400,7 +400,7 @@ export default function AppContent() {
                       onWordClick={handleWordClick}
                     />
 
-                    {/* Character Legend */}
+                    {/* Legend */}
                     <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -450,16 +450,16 @@ export default function AppContent() {
                 )}
               </AnimatePresence>
 
-              {/* Bottom padding for fixed audio player - always present to prevent layout shift */}
+              {/* Bottom padding for fixed audio player */}
               <div className="h-32 lg:h-40" />
             </div>
           </div>
         </main>
 
-        {/* Footer */}
+  {/* Footer */}
         <Footer />
 
-        {/* Audio Player - Fixed at bottom */}
+  {/* Audio Player */}
         <AnimatePresence>
           {ttsResult && (
             <motion.div

@@ -210,22 +210,19 @@ export const FormattedTextDisplay = React.memo(function FormattedTextDisplay({ w
 					${hasCurrentWord ? "bg-slate-50 dark:bg-slate-800/50" : ""}
 				`}
 			>
-				{/* Character Name / Narrator Icon */}
+				{/* Name/icon */}
 				<div className="flex-shrink-0 min-w-0 w-8 sm:w-24">
 					{isNarrator ? (
 						<>
-							{/* Mobile: Just the icon */}
 							<div className="flex sm:hidden items-center justify-center h-6 w-8">
 								<BookOpen className="w-4 h-4 text-slate-500 dark:text-slate-400" />
 							</div>
-							{/* Desktop: Icon with label */}
 							<div className="hidden sm:flex items-center justify-center h-6">
 								<BookOpen className="w-4 h-4 text-slate-500 dark:text-slate-400" />
 							</div>
 						</>
 					) : (
 						<>
-							{/* Mobile: Character letter icon */}
 							<div className="flex sm:hidden items-center justify-center h-6 w-8">
 								<div
 									className={`w-6 h-6 rounded-full bg-gradient-to-r ${characterGradient} flex items-center justify-center text-white text-xs font-semibold shadow-sm`}
@@ -233,7 +230,6 @@ export const FormattedTextDisplay = React.memo(function FormattedTextDisplay({ w
 									{line.character.charAt(0).toUpperCase()}
 								</div>
 							</div>
-							{/* Desktop: Full character name with dot */}
 							<div className="hidden sm:flex items-center gap-2">
 								<div
 									className={`w-2 h-2 rounded-full bg-gradient-to-r ${characterGradient} flex-shrink-0`}
@@ -246,9 +242,8 @@ export const FormattedTextDisplay = React.memo(function FormattedTextDisplay({ w
 					)}
 				</div>
 
-				{/* Dialogue Text */}
+				{/* Dialogue (inline flow) */}
 				<div className="flex-1 min-w-0">
-					{/* Render in normal inline flow so cues don't break into their own flex rows */}
 					<div className="leading-relaxed break-words whitespace-pre-wrap">
 						{line.parts.map((part, i) => {
 							if (part.type === "cue") {
