@@ -1,87 +1,110 @@
 # VoiceLoom
 
-**VoiceLoom** is a multi-speaker text-to-speech (TTS) pipeline that weaves together scripts, voices, and expressive narration into synchronized audio.  
-It combines **Gemini TTS**, **fast-whisper alignment**, and a structured **job orchestration system** to deliver high-quality audio with word-level timings.
+VoiceLoom is a multi‑speaker text‑to‑speech (TTS) pipeline that weaves together stories, voices, and expressive delivery into synchronized audio with word‑level timings.
+
+It combines:
+- Google Gemini TTS (multi‑speaker synthesis)
+- Faster‑Whisper alignment (word timings)
+- FastAPI + filesystem job orchestration
 
 
 ## ✨ Features
 
-- 🎙️ **Multi-speaker support**  
-  Map roles in your script (e.g., `[narrator]`, `[protagonist_m]`) to different voices via a `voices.yml` registry.
-
-- 📝 **Standardized script format**  
-  Input scripts with style descriptions, action cues, and inline expressions for precise control.
-
-- ⚡ **Single-pass synthesis**  
-  Uses Google Gemini TTS to generate audio in one request with consistent voice switching.
-
-- ⏱️ **Word-level alignment**  
-  Aligns final audio with text using **fast-whisper**, producing accurate per-word timings.
-
-- 🗂️ **Caching system**  
-  Avoids duplicate API calls by hashing scripts + voice configs and reusing artifacts.
-
-- 🔌 **REST API** (FastAPI)  
-  Endpoints for job creation, status tracking, audio retrieval, and alignment timings.
-
-- 📦 **Filesystem-backed job management**  
-  Every job has its own directory with request metadata, audio, timings, and manifest.
+- Multi‑speaker stories mapped via `config/voices.yml`
+- Single‑pass synthesis with consistent voice switching
+- Word‑level alignment of final audio
+- Filesystem jobs + cache for dedupe
+- REST API and a React/Vite PWA UI served by FastAPI
 
 
-## 🚀 Quick Start
+## 📦 Requirements
 
-### 1. Set up environment
-```bash
-python -m venv venv
-source venv/bin/activate  # or venv\Scripts\activate on Windows
+- Python 3.10+ 
+- Node.js 18+ 
+- A valid Google API key for Gemini TTS
+
+
+## � Setup & Run
+
+### 1) Python environment
+
+PowerShell (Windows):
+```pwsh
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-### 2. Configure environment variables
-Create .env in project root:
-```bash
-GOOGLE_API_KEY=your_api_key_here
-TTS_MODEL=gemini-2.5-flash-preview-tts
-WHISPER_MODEL=tiny.en
-WHISPER_DEVICE=cpu
-```
+### 2) Build the UI
 
-### 3. Run the server
-```bash
-uvicorn app.main:app --reload --port 8000
-```
-
-## 📱 Install as a PWA (Mobile & Desktop)
-
-The UI is now a Progressive Web App. After you build the UI, FastAPI serves the static assets, including the service worker and manifest.
-
-### Build the UI
-```bash
+From repo root:
+```pwsh
 npm --prefix ui install --legacy-peer-deps
 npm --prefix ui run build
 ```
-This generates `ui/dist`, including `sw.js` and `manifest.webmanifest`.
 
-Note: This repository intentionally keeps all Node dependencies scoped to the `ui/` folder. Avoid running `npm install` at the repository root so you don’t create a root-level `package-lock.json`. Use `--prefix ui` or run commands inside the `ui/` directory.
+### 3) Configure environment
 
-### Serve via FastAPI
-`app/main.py` auto-mounts `ui/dist` at `/` when it exists. Run the server and open:
-- http://localhost:8000
+Create a `.env` file in the project root (values shown are examples):
+```dotenv
+GOOGLE_API_KEY=your_api_key_here
+TTS_MODEL=gemini-2.5-flash-preview-tts
+WHISPER_MODEL=tiny.en
+WHISPER_DEVICE=auto
+WHISPER_COMPUTE_TYPE=int8
+HOST=0.0.0.0
+PORT=8000
+DEBUG=false
+DE_DIALECT=false
+SSL_CERTFILE=C:\path\to\cert.pem
+SSL_KEYFILE=C:\path\to\key.pem
+```
 
-### Install prompts
-- Desktop (Chrome/Edge): You’ll see an Install icon in the address bar. Click to install.
-- Android (Chrome): Menu → Add to Home screen.
-- iOS (Safari): Share → Add to Home Screen.
+### 4) Start the server
 
-### HTTPS note
-Service workers require HTTPS in production. For local development, http://localhost is allowed. When deploying, serve over HTTPS (reverse proxy / CDN) to enable offline support and install prompts.
+Recommended:
+```pwsh
+python run_server.py
+```
 
-### Update behavior
-The service worker is set to auto-update. When a new build is available, the app refreshes to the latest version. You can customize this in `ui/src/main.tsx` by replacing the auto-refresh with a toast/confirm flow.
+## 🧩 Story format (authoring)
 
-### Icons
-Place branded icons in `ui/public/`:
-- `pwa-192x192.png`, `pwa-512x512.png`, `pwa-maskable-512x512.png`, `apple-touch-icon.png`
+```
+STYLE DESCRIPTION:
+  Freeform prose about tone, pacing, references...
 
-Replace the placeholders with your graphics to improve the install experience on mobile and desktop.
+ACTION DICTIONARY:
+  cue_name: description
 
+SCRIPT:
+  [Role] (<Character>) Utterance with (inline cues)
+  [Role] Utterance…
+```
+
+- `[Role]` maps to a voice in `config/voices.yml`.
+- `<Character>` is displayed in the UI (if present).
+- Inline `(…)` cues are shown in the UI; removed when building alignment text.
+
+
+## 🗂️ Speaker registry
+
+Define voices in `app/config/voices.yml`. Only roles used in the request are required. If a role is missing, the API will return a validation error.
+
+
+## 🔌 API overview
+
+- `POST /v1/tts/jobs` → create a job
+  - Body: `{ script: string, roles: string[] }`
+- `GET /v1/tts/jobs/{id}` → job status
+- `GET /v1/tts/jobs/{id}/manifest` → `{ audioUrl, timingsUrl, script }`
+- `GET /v1/tts/jobs/{id}/audio` → wav/mpeg
+- `GET /v1/tts/jobs/{id}/timings` → word timing JSON
+
+Each job is stored under `data/jobs/<jobId>/` with audio, timings, and manifest. 
+
+
+## 🧭 Data layout
+
+- `data/jobs/<jobId>/` → per‑job artifacts (request.json, status.json, tts_out.wav, timings.json, manifest.json, ui_script.txt, alignment_script.txt)
+- `data/cache/` → cache keys mapping to origin job ids for artifact reuse
