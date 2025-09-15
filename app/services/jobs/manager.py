@@ -21,6 +21,7 @@ from app.services.process.mastering import (
     build_ui_script,
     build_alignment_text_from_ui,
 )
+from app.services.process.normalization import apply_de_dialect
 
 logger = get_logger(__name__)
 
@@ -37,6 +38,7 @@ class ManagerConfig:
     whisper_compute_type: str
     request_timeout_sec: int
     max_text_chars: int
+    de_dialect: bool
 
 
 class JobManager:
@@ -57,6 +59,7 @@ class JobManager:
         whisper_compute_type: str,
         request_timeout_sec: int,
         max_text_chars: int,
+        de_dialect: bool = False,
     ):
         self.cfg = ManagerConfig(
             data_dir=data_dir,
@@ -69,6 +72,7 @@ class JobManager:
             whisper_compute_type=whisper_compute_type,
             request_timeout_sec=request_timeout_sec,
             max_text_chars=max_text_chars,
+            de_dialect=de_dialect,
         )
         
         self.cfg.jobs_dir.mkdir(parents=True, exist_ok=True)
@@ -122,6 +126,8 @@ class JobManager:
 
             doc = parse_text(script)
             ui_script = build_ui_script(doc)
+            if self.cfg.de_dialect:
+                ui_script = apply_de_dialect(ui_script)
             alignment_script = build_alignment_text_from_ui(ui_script)
 
             effective_script = prepend_tts_instructions(script)

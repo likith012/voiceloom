@@ -14,7 +14,7 @@ settings = get_settings()
 configure_logging(settings.debug)
 
 app = FastAPI(
-    title="TTS Reader",
+    title="Voice Loom",
     version="0.1.0",
     debug=settings.debug,
 )

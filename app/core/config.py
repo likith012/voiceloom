@@ -16,6 +16,10 @@ class Settings(BaseModel):
     port: int = int(os.getenv("PORT", "8000"))
     debug: bool = os.getenv("DEBUG", "false").lower() == "true"
 
+    # --- TLS / SSL (optional) ---
+    ssl_keyfile: Optional[str] = os.getenv("SSL_KEYFILE") or None
+    ssl_certfile: Optional[str] = os.getenv("SSL_CERTFILE") or None
+
     # --- Google ---
     google_api_key: str = os.getenv("GOOGLE_API_KEY", "")
     tts_model: str = os.getenv("TTS_MODEL", "gemini-2.5-flash-preview-tts")
@@ -41,6 +45,9 @@ class Settings(BaseModel):
     # --- Tunneling ---
     tunnel_provider: Literal["ngrok", "none"] = os.getenv("TUNNEL_PROVIDER", "ngrok")
     share_token: Optional[str] = os.getenv("SHARE_TOKEN") or None
+
+    # --- Normalization ---
+    de_dialect: bool = os.getenv("DE_DIALECT", "false").lower() == "true"
 
     @property
     def jobs_path(self) -> Path:

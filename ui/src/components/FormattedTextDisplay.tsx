@@ -206,21 +206,43 @@ export const FormattedTextDisplay = React.memo(function FormattedTextDisplay({ w
 				animate={{ opacity: 1, y: 0 }}
 				transition={{ duration: 0.3 }}
 				className={`
-					group flex gap-4 py-2 px-3 rounded-lg transition-all duration-200 hover:bg-slate-50/50 dark:hover:bg-slate-800/30
+					group flex gap-2 sm:gap-4 py-2 px-2 sm:px-3 rounded-lg transition-all duration-200 hover:bg-slate-50/50 dark:hover:bg-slate-800/30
 					${hasCurrentWord ? "bg-slate-50 dark:bg-slate-800/50" : ""}
 				`}
 			>
 				{/* Character Name / Narrator Icon */}
-				<div className="flex-shrink-0 min-w-0 w-20 sm:w-24">
+				<div className="flex-shrink-0 min-w-0 w-8 sm:w-24">
 					{isNarrator ? (
-						<div className="flex items-center justify-center h-6">
-							<BookOpen className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-						</div>
+						<>
+							{/* Mobile: Just the icon */}
+							<div className="flex sm:hidden items-center justify-center h-6 w-8">
+								<BookOpen className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+							</div>
+							{/* Desktop: Icon with label */}
+							<div className="hidden sm:flex items-center justify-center h-6">
+								<BookOpen className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+							</div>
+						</>
 					) : (
-						<div className="flex items-center gap-2">
-							<div className={`w-2 h-2 rounded-full bg-gradient-to-r ${characterGradient} flex-shrink-0`} />
-							<span className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{line.character}</span>
-						</div>
+						<>
+							{/* Mobile: Character letter icon */}
+							<div className="flex sm:hidden items-center justify-center h-6 w-8">
+								<div
+									className={`w-6 h-6 rounded-full bg-gradient-to-r ${characterGradient} flex items-center justify-center text-white text-xs font-semibold shadow-sm`}
+								>
+									{line.character.charAt(0).toUpperCase()}
+								</div>
+							</div>
+							{/* Desktop: Full character name with dot */}
+							<div className="hidden sm:flex items-center gap-2">
+								<div
+									className={`w-2 h-2 rounded-full bg-gradient-to-r ${characterGradient} flex-shrink-0`}
+								/>
+								<span className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">
+									{line.character}
+								</span>
+							</div>
+						</>
 					)}
 				</div>
 

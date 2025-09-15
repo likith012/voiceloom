@@ -29,6 +29,7 @@ def get_manager() -> JobManager:
         whisper_compute_type=s.whisper_compute_type,
         request_timeout_sec=s.request_timeout_sec,
         max_text_chars=s.max_text_chars,
+        de_dialect=s.de_dialect,
     )
 
 

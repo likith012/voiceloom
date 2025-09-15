@@ -111,20 +111,20 @@ export const TTSInput = memo(function TTSInput({ onSubmit, isProcessing, isColla
 						>
 							<div className="flex items-center gap-3 mb-3">
 								<div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-								<span className="text-sm font-medium text-blue-700 dark:text-blue-300">Processing Pipeline</span>
+								<span className="text-sm font-medium text-blue-700 dark:text-blue-300">Pipeline</span>
 							</div>
 							<div className="space-y-2 text-xs text-blue-600 dark:text-blue-400">
 								<div className="flex items-center gap-2">
 									<div className="w-1 h-1 bg-blue-400 rounded-full"></div>
-									Parsing character definitions...
+									Parsing and normalizing your story
 								</div>
 								<div className="flex items-center gap-2">
 									<div className="w-1 h-1 bg-blue-400 rounded-full"></div>
-									Analyzing dialogue structure...
+									Generating voice synthesis
 								</div>
 								<div className="flex items-center gap-2">
 									<div className="w-1 h-1 bg-blue-400 rounded-full"></div>
-									Generating voice synthesis...
+									Aligning voice
 								</div>
 							</div>
 						</motion.div>
