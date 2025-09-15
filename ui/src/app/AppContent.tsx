@@ -49,6 +49,31 @@ function extractRoles(structuredText: string): string[] {
   return Array.from(roles);
 }
 
+// Normalize role names to Title_Case_With_Underscores
+function normalizeRoleName(raw: string): string {
+  let s = (raw ?? "").trim();
+  if ((s.startsWith("\"") && s.endsWith("\"")) || (s.startsWith("'") && s.endsWith("'"))) {
+    s = s.slice(1, -1).trim();
+  } else {
+    s = s.replace(/^['\"]+/, "").replace(/['\"]+$/, "");
+  }
+  s = s.replace(/[\s\-]+/g, "_");
+  s = s.replace(/[^A-Za-z0-9_]/g, "");
+  s = s.replace(/_+/g, "_").replace(/^_+|_+$/g, "");
+  if (!s) return s;
+  const parts = s.split("_").map((p) => p ? (p[0].toUpperCase() + p.slice(1).toLowerCase()) : p);
+  return parts.join("_");
+}
+
+function normalizeRoles(roles: string[]): string[] {
+  const out = new Set<string>();
+  for (const r of roles) {
+    const n = normalizeRoleName(r);
+    if (n) out.add(n);
+  }
+  return Array.from(out);
+}
+
 // Display model for script + cues
 interface DisplayTextPartCue { type: "cue"; display: string }
 interface DisplayTextPartText { type: "text"; startIndex: number; length: number; tokens: string[] }
@@ -213,7 +238,7 @@ export default function AppContent() {
     structuredText: string,
   ): Promise<TTSResult> => {
   // Create job
-    const roles = extractRoles(structuredText);
+    const roles = normalizeRoles(extractRoles(structuredText));
     const createRes = await fetch("/v1/tts/jobs", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
