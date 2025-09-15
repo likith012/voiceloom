@@ -70,6 +70,9 @@ DE_DIALECT_MAP: Dict[str, str] = {
 
 _PAREN_GROUP = re.compile(r"\([^)]*\)")
 _SMART_APOS_RE = re.compile(r"[’‘]")
+_LEADING_ALPHA_RE = re.compile(r"^([^A-Za-z]*)([a-z])")
+_LINE_RE = re.compile(r"^\s*<([^>]+)>\s*(.*)$")
+_SENTENCE_START_RE = re.compile(r"((?<!\.)[.!?](?:[\"'”’\)\]])?\s+)([a-z])")
 
 def _ascii_apostrophes(s: str) -> str:
     return _SMART_APOS_RE.sub("'", s)
@@ -121,7 +124,28 @@ def _normalize(text: str) -> str:
     return "".join(out_parts)
 
 
-_LINE_RE = re.compile(r"^\s*<([^>]+)>\s*(.*)$")
+def _capitalize(text: str) -> str:
+    def cap_leading(seg: str) -> str:
+        m = _LEADING_ALPHA_RE.match(seg)
+        if m:
+            prefix, ch = m.group(1), m.group(2)
+            seg = prefix + ch.upper() + seg[m.end():]
+        return _SENTENCE_START_RE.sub(lambda mm: mm.group(1) + mm.group(2).upper(), seg)
+
+    out_parts: List[str] = []
+    pos = 0
+    for pm in _PAREN_GROUP.finditer(text):
+        pre = text[pos:pm.start()]
+        if pre:
+            pre = cap_leading(pre)
+        out_parts.append(pre)
+        out_parts.append(pm.group(0))
+        pos = pm.end()
+    tail = text[pos:]
+    if tail:
+        tail = cap_leading(tail)
+    out_parts.append(tail)
+    return "".join(out_parts)
 
 
 def apply_de_dialect(ui_script: str) -> str:
@@ -137,6 +161,7 @@ def apply_de_dialect(ui_script: str) -> str:
         label, text = m.group(1), m.group(2)
         if (label or "").strip() == "Narrator":
             norm = _normalize(text)
+            norm = _capitalize(norm)
             out_lines.append(f"<{label}> {norm}".rstrip())
         else:
             out_lines.append(raw)

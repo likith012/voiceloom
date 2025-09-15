@@ -23,7 +23,7 @@ type DisplayTextPart = DisplayTextPartCue | DisplayTextPartText;
 interface DisplayLine { character: string; isNarrator: boolean; parts: DisplayTextPart[]; startIndex: number; length: number }
 
 export const FormattedTextDisplay = React.memo(function FormattedTextDisplay({ words, displayLines, currentTime, characterColors, onWordClick }: FormattedTextDisplayProps) {
-	
+    
 	const [autoScroll, setAutoScroll] = useState(true);
 	const isAutoScrollingRef = useRef(false);
 	const lastScrolledIndexRef = useRef<number | null>(null);
@@ -31,18 +31,18 @@ export const FormattedTextDisplay = React.memo(function FormattedTextDisplay({ w
 	const resumeBtnRef = useRef<HTMLButtonElement | null>(null);
 	const lastScrollYRef = useRef<number>(0);
 
-	
+    
 	const contentRef = useRef<HTMLDivElement | null>(null);
 
-	
+    
 	const [highlightStyle, setHighlightStyle] = useState<{
 		x: number; y: number; width: number; height: number; visible: boolean; word: string;
 	}>({ x: 0, y: 0, width: 0, height: 0, visible: false, word: "" });
 
-	
+    
 	const currentWordIndex = useMemo(() => {
 		if (!words || words.length === 0) return -1;
-		
+        
 		let lo = 0, hi = words.length - 1, ans = -1;
 		while (lo <= hi) {
 			const mid = (lo + hi) >> 1;
@@ -56,7 +56,7 @@ export const FormattedTextDisplay = React.memo(function FormattedTextDisplay({ w
 		return ans;
 	}, [words, currentTime]);
 
-	
+    
 	function getDisplayTokenForIndex(idx: number): string {
 		if (idx < 0) return "";
 		for (const line of displayLines) {
@@ -74,7 +74,7 @@ export const FormattedTextDisplay = React.memo(function FormattedTextDisplay({ w
 		return words[idx]?.text ?? "";
 	}
 
-	
+    
 	function updateOverlayPosition(idx: number) {
 		const container = contentRef.current;
 		if (!container) return;
@@ -112,14 +112,14 @@ export const FormattedTextDisplay = React.memo(function FormattedTextDisplay({ w
 		});
 	}
 
-	
+    
 	function scrollToIndex(index: number) {
 		if (index == null || index < 0) return;
 		const el = document.querySelector<HTMLElement>(`[data-word-index="${index}"]`);
 		if (!el) return;
 		const rect = el.getBoundingClientRect();
 		const currentY = window.scrollY || window.pageYOffset || 0;
-		
+        
 		const bottomOffset = window.matchMedia('(min-width: 1024px)').matches ? 160 : 128;
 		const effectiveHeight = Math.max(240, window.innerHeight - bottomOffset);
 		const targetY = Math.max(0, currentY + rect.top - Math.round(effectiveHeight * 0.42));
@@ -132,7 +132,7 @@ export const FormattedTextDisplay = React.memo(function FormattedTextDisplay({ w
 		lastScrolledIndexRef.current = index;
 	}
 
-	
+    
 	useEffect(() => {
 		if (!autoScroll) return;
 		if (currentWordIndex < 0) return;
@@ -140,7 +140,7 @@ export const FormattedTextDisplay = React.memo(function FormattedTextDisplay({ w
 		scrollToIndex(currentWordIndex);
 	}, [currentWordIndex, autoScroll]);
 
-	
+    
 	useEffect(() => {
 		updateOverlayPosition(currentWordIndex);
 		const onScrollOrResize = () => updateOverlayPosition(currentWordIndex);
@@ -152,7 +152,7 @@ export const FormattedTextDisplay = React.memo(function FormattedTextDisplay({ w
 		};
 	}, [currentWordIndex, displayLines, words, currentTime]);
 
-	
+    
 	useEffect(() => {
 		const pause = () => setAutoScroll(false);
 
@@ -169,7 +169,7 @@ export const FormattedTextDisplay = React.memo(function FormattedTextDisplay({ w
 		const onScroll = () => {
 			if (isAutoScrollingRef.current) return;
 			if (Date.now() - lastAutoScrollAtRef.current < 1200) return;
-			
+            
 			const currentY = window.scrollY || window.pageYOffset || 0;
 			const lastY = lastScrollYRef.current || 0;
 			const delta = Math.abs(currentY - lastY);
@@ -194,7 +194,7 @@ export const FormattedTextDisplay = React.memo(function FormattedTextDisplay({ w
 		const isNarrator = line.isNarrator || line.character === "Narrator";
 		const characterGradient = characterColors[line.character] || "from-slate-500 to-slate-600";
 
-		
+        
 		const hasCurrentWord = line.parts.some((p) =>
 			p.type === "text" && currentWordIndex >= p.startIndex && currentWordIndex < p.startIndex + p.length,
 		);
@@ -248,29 +248,28 @@ export const FormattedTextDisplay = React.memo(function FormattedTextDisplay({ w
 
 				{/* Dialogue Text */}
 				<div className="flex-1 min-w-0">
-					<div className="flex flex-wrap gap-1 leading-relaxed">
+					{/* Render in normal inline flow so cues don't break into their own flex rows */}
+					<div className="leading-relaxed break-words whitespace-pre-wrap">
 						{line.parts.map((part, i) => {
 							if (part.type === "cue") {
 								return (
-									<span key={`cue-${line.startIndex}-${i}`} className="italic opacity-40 px-0.5">
-										({part.display})
-									</span>
+									<React.Fragment key={`cue-${line.startIndex}-${i}`}>
+										<span className="italic opacity-40 px-0.5">({part.display})</span>{' '}
+									</React.Fragment>
 								);
 							}
 
-						
 							return (
 								<span key={`segment-${line.startIndex}-${i}`}>
 									{part.tokens.map((tok, j) => {
 										const idx = part.startIndex + j;
 										const handleClick = () => {
 											const t = words[idx]?.startTime ?? 0;
-									
+                                            
 											const normTok = normalizeToken(tok);
 											const normTiming = normalizeToken(words[idx]?.text ?? "");
 											let adjustedIdx = idx;
 											if (normTok && normTok !== normTiming) {
-										
 												const min = line.startIndex;
 												const max = line.startIndex + line.length;
 												adjustedIdx = findNearestMatchingIndex(words, idx, tok, min, max);
@@ -279,16 +278,17 @@ export const FormattedTextDisplay = React.memo(function FormattedTextDisplay({ w
 											onWordClick?.(target?.startTime ?? t, adjustedIdx);
 										};
 										return (
-											<span
-												key={`word-${idx}`}
-												className={`inline-block px-0.5 py-0.5 rounded-sm cursor-pointer transition-colors duration-150 hover:bg-slate-200/60 dark:hover:bg-slate-700/40 ${
-													isNarrator ? "text-slate-600 dark:text-slate-400" : "text-slate-700 dark:text-slate-300"
-												}`}
-												data-word-index={idx}
-												onClick={handleClick}
-											>
-												{tok}
-											</span>
+											<React.Fragment key={`word-${idx}`}>
+												<span
+													className={`inline px-0.5 py-0.5 rounded-sm cursor-pointer transition-colors duration-150 hover:bg-slate-200/60 dark:hover:bg-slate-700/40 ${
+														isNarrator ? "text-slate-600 dark:text-slate-400" : "text-slate-700 dark:text-slate-300"
+													}`}
+													data-word-index={idx}
+													onClick={handleClick}
+												>
+													{tok}
+												</span>{' '}
+											</React.Fragment>
 										);
 									})}
 								</span>
@@ -311,7 +311,7 @@ export const FormattedTextDisplay = React.memo(function FormattedTextDisplay({ w
 	function findNearestMatchingIndex(all: Word[], guess: number, displayTok: string, minIdx = 0, maxIdx = all.length): number {
 		const norm = normalizeToken(displayTok);
 		if (!norm) return guess;
-		
+        
 		const offsets: number[] = [0, 1, -1, 2, -2, 3, -3];
 		for (const d of offsets) {
 			const k = guess + d;
