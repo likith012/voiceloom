@@ -72,7 +72,9 @@ _PAREN_GROUP = re.compile(r"\([^)]*\)")
 _SMART_APOS_RE = re.compile(r"[’‘]")
 _LEADING_ALPHA_RE = re.compile(r"^([^A-Za-z]*)([a-z])")
 _LINE_RE = re.compile(r"^\s*<([^>]+)>\s*(.*)$")
-_SENTENCE_START_RE = re.compile(r"((?<!\.)[.!?](?:[\"'”’\)\]])?\s+)([a-z])")
+_SENTENCE_START_RE = re.compile(
+    r"((?:(?<!\.)[.!?]|\.{3}|…)\s*(?:[\"'”’\)\]]*)\s+)([\"'“‘\(\[]*)([a-z])"
+)
 
 def _ascii_apostrophes(s: str) -> str:
     return _SMART_APOS_RE.sub("'", s)
@@ -130,7 +132,7 @@ def _capitalize(text: str) -> str:
         if m:
             prefix, ch = m.group(1), m.group(2)
             seg = prefix + ch.upper() + seg[m.end():]
-        return _SENTENCE_START_RE.sub(lambda mm: mm.group(1) + mm.group(2).upper(), seg)
+        return _SENTENCE_START_RE.sub(lambda mm: mm.group(1) + mm.group(2) + mm.group(3).upper(), seg)
 
     out_parts: List[str] = []
     pos = 0
