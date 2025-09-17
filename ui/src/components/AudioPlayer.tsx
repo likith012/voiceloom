@@ -19,6 +19,7 @@ export function AudioPlayer({ audioUrl, onTimeUpdate, duration = 0, externalSeek
 	const [currentTime, setCurrentTime] = useState(0);
 	const [audioDuration, setAudioDuration] = useState(duration);
 	const [playbackRate, setPlaybackRate] = useState(1);
+	const allowedRates = useRef<number[]>([0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.75, 2]);
 	const [volume, setVolume] = useState(0.8);
 	const [isMuted, setIsMuted] = useState(false);
 	const [isControlsVisible, setIsControlsVisible] = useState(true);
@@ -154,7 +155,10 @@ export function AudioPlayer({ audioUrl, onTimeUpdate, duration = 0, externalSeek
 		const audio = audioRef.current;
 		if (!audio) return;
 
-		const newRate = value[0];
+		const raw = value[0];
+		// Snap to nearest allowed rate
+		const near = allowedRates.current.reduce((prev, curr) => Math.abs(curr - raw) < Math.abs(prev - raw) ? curr : prev, allowedRates.current[0]);
+		const newRate = near;
 		setPlaybackRate(newRate);
 		audio.playbackRate = newRate;
 		handleUserInteraction();
@@ -325,13 +329,13 @@ export function AudioPlayer({ audioUrl, onTimeUpdate, duration = 0, externalSeek
 										>
 											<div className="text-center">
 												<div className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-3">
-													{playbackRate.toFixed(1)}×
+													{Number(playbackRate.toFixed(2).replace(/\.0+$/, '').replace(/(\.[1-9])0$/, '$1'))}×
 												</div>
 												<Slider
 													value={[playbackRate]}
 													min={0.5}
 													max={2}
-													step={0.1}
+													step={0.01}
 													onValueChange={handleSpeedChange}
 													className="w-full cursor-pointer"
 													style={{
