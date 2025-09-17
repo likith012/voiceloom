@@ -207,11 +207,19 @@ export const FormattedTextDisplay = React.memo(function FormattedTextDisplay({ w
 				transition={{ duration: 0.3 }}
 				className={`
 					group flex gap-2 sm:gap-4 py-2 px-2 sm:px-3 rounded-lg transition-all duration-200 hover:bg-slate-50/50 dark:hover:bg-slate-800/30
-					${hasCurrentWord ? "bg-slate-50 dark:bg-slate-800/50" : ""}
+					${hasCurrentWord ? "bg-slate-50 dark:bg-slate-800/40" : ""}
+					relative overflow-hidden
 				`}
 			>
+				{/* Active line translucent overlay and accent (distinct from word overlay) */}
+				{hasCurrentWord && (
+					<>
+						<div className="pointer-events-none absolute inset-0 rounded-lg bg-slate-200/40 dark:bg-slate-700/30" />
+						<div className={`pointer-events-none absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b ${characterGradient} opacity-70`} />
+					</>
+				)}
 				{/* Name/icon */}
-				<div className="flex-shrink-0 min-w-0 w-8 sm:w-24">
+				<div className="relative z-10 flex-shrink-0 min-w-0 w-8 sm:w-24">
 					{isNarrator ? (
 						<>
 							<div className="flex sm:hidden items-center justify-center h-6 w-8">
@@ -243,7 +251,7 @@ export const FormattedTextDisplay = React.memo(function FormattedTextDisplay({ w
 				</div>
 
 				{/* Dialogue (inline flow) */}
-				<div className="flex-1 min-w-0">
+				<div className="relative z-10 flex-1 min-w-0">
 					<div className="leading-relaxed break-words whitespace-pre-wrap">
 						{line.parts.map((part, i) => {
 							if (part.type === "cue") {
@@ -352,7 +360,7 @@ export const FormattedTextDisplay = React.memo(function FormattedTextDisplay({ w
 						const gradient = currentChar ? (characterColors[currentChar] ?? "from-slate-500 to-slate-600") : "from-slate-500 to-slate-600";
 						return (
 							<motion.div
-								className="pointer-events-none absolute z-20"
+								className="pointer-events-none absolute z-30"
 								style={{ left: 0, top: 0 }}
 								initial={{ opacity: 0 }}
 								animate={{
