@@ -41,10 +41,7 @@ class Settings(BaseModel):
     # --- Limits & Timeouts ---
     max_text_chars: int = int(os.getenv("MAX_TEXT_CHARS", "120000"))  # ~20k words
     request_timeout_sec: int = int(os.getenv("REQUEST_TIMEOUT_SEC", "900"))  
-
-    # --- Tunneling ---
-    tunnel_provider: Literal["ngrok", "none"] = os.getenv("TUNNEL_PROVIDER", "ngrok")
-    share_token: Optional[str] = os.getenv("SHARE_TOKEN") or None
+    do_chunk: bool = os.getenv("DO_CHUNK", "false").lower() == "true"
 
     # --- Normalization ---
     de_dialect: bool = os.getenv("DE_DIALECT", "false").lower() == "true"

@@ -8,14 +8,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Optional, List
 
-from app.core.instructions import prepend_tts_instructions
+from app.utils.instructions import prepend_tts_instructions
 from app.domain.schemas import JobCreate, JobStatus, Manifest, SpeakerRegistry
 from app.domain.states import JobState, can_transition
 from app.utils.roles import resolve_registry
 from app.services.synth.singlepass import synthesize_single_pass  
-from app.core.cache import make_cache_key, lookup_origin_job, record_origin_job
+from app.services.synth.chunking import synthesize_chunked
+from app.utils.cache import make_cache_key, lookup_origin_job, record_origin_job
 from app.services.align.aligner import align_audio
-from app.core.logging import get_logger
+from app.utils.logging import get_logger
 from app.services.process.mastering import (
     parse_text,
     build_ui_script,
@@ -32,6 +33,7 @@ class ManagerConfig:
     jobs_dir: Path
     cache_dir: Path
     google_api_key: str
+    do_chunk: bool
     tts_model: str
     whisper_model: str
     whisper_device: str
@@ -53,6 +55,7 @@ class JobManager:
         jobs_dir: Path,
         cache_dir: Path,
         google_api_key: str,
+        do_chunk: bool,
         tts_model: str,
         whisper_model: str,
         whisper_device: str,
@@ -66,6 +69,7 @@ class JobManager:
             jobs_dir=jobs_dir,
             cache_dir=cache_dir,
             google_api_key=google_api_key,
+            do_chunk=do_chunk,
             tts_model=tts_model,
             whisper_model=whisper_model,
             whisper_device=whisper_device,
@@ -168,15 +172,26 @@ class JobManager:
             # 1) Synthesis
             logger.info(f"Starting synthesis for job {job_id}")
             
-            audio_path = synthesize_single_pass(
-                script=effective_script,
-                registry=registry,
-                output_dir=self._job_dir(job_id),
-                output_basename="tts_out",  
-                google_api_key=self.cfg.google_api_key,
-                tts_model=self.cfg.tts_model,
-                request_timeout_sec=self.cfg.request_timeout_sec,
-            )
+            if self.cfg.do_chunk:
+                audio_path = synthesize_chunked(
+                    script=effective_script,
+                    registry=registry,
+                    output_dir=self._job_dir(job_id),
+                    output_basename="tts_out",
+                    google_api_key=self.cfg.google_api_key,
+                    tts_model=self.cfg.tts_model,
+                    request_timeout_sec=self.cfg.request_timeout_sec,
+                )
+            else:
+                audio_path = synthesize_single_pass(
+                    script=effective_script,
+                    registry=registry,
+                    output_dir=self._job_dir(job_id),
+                    output_basename="tts_out",  
+                    google_api_key=self.cfg.google_api_key,
+                    tts_model=self.cfg.tts_model,
+                    request_timeout_sec=self.cfg.request_timeout_sec,
+                )
             logger.info(f"Synthesis complete for job {job_id}, audio at {audio_path}")
 
             # 2) Alignment

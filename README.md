@@ -74,7 +74,7 @@ python run_server.py
 STYLE DESCRIPTION:
   Freeform prose about tone, pacing, references...
 
-ACTION DICTIONARY:
+VOCAL DICTIONARY:
   cue_name: description
 
 SCRIPT:

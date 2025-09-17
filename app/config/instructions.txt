@@ -7,6 +7,6 @@ Rules:
 - Use <Character> to guide the delivery (like accent, tempo, tone, etc.) defined in the STYLE DESCRIPTION; never say the Character name.
 - Parentheses (...) are non-spoken cues:
   • lowercase = natural vocal behaviors 
-  • UPPER_SNAKE_CASE = control cues defined in ACTION DICTIONARY for complex cues.
+  • UPPER_SNAKE_CASE = control vocal cues defined in VOCAL DICTIONARY for complex vocal cues.
 - Speak the remaining text with natural prosody.
-- Do not read section headings (STYLE DESCRIPTION, ACTION DICTIONARY, SCRIPT).
+- Do not read section headings (STYLE DESCRIPTION, VOCAL DICTIONARY, SCRIPT).

@@ -16,14 +16,14 @@ class ScriptLine:
 @dataclass
 class ParsedDoc:
     styles_raw: str               # after "STYLE DESCRIPTION:"
-    actions_raw: str              # after "ACTION DICTIONARY:"
+    vocals_raw: str               # after "VOCAL DICTIONARY:"
     lines: List[ScriptLine]       # ordered speaker turns
 
 
 # ---------- Section parsing ----------
 
 _STYLE_HDR = re.compile(r"^\s*STYLE DESCRIPTION:\s*$", re.IGNORECASE)
-_ACTION_HDR = re.compile(r"^\s*ACTION DICTIONARY:\s*$", re.IGNORECASE)
+_VOCAL_HDR = re.compile(r"^\s*VOCAL DICTIONARY:\s*$", re.IGNORECASE)
 _SCRIPT_HDR = re.compile(r"^\s*SCRIPT:\s*$", re.IGNORECASE)
 
 # script line: [EngineRole] (optional <Character>) utterance...
@@ -42,13 +42,13 @@ _PAREN_GROUP = re.compile(r"\(([^)]*)\)")
 
 def parse_text(text: str) -> ParsedDoc:
     """
-    Parse the doc with headings:
-      STYLE DESCRIPTION:
-      ACTION DICTIONARY:
-      SCRIPT:
+        Parse the doc with headings:
+            STYLE DESCRIPTION:
+            VOCAL DICTIONARY:
+            SCRIPT:
     Only SCRIPT is required. Each script line must be "[Role] utterance".
     """
-    style_block, action_block, script_block = _split_sections(text)
+    style_block, vocal_block, script_block = _split_sections(text)
 
     lines: List[ScriptLine] = []
     for raw in _to_nonempty_lines(script_block):
@@ -73,18 +73,18 @@ def parse_text(text: str) -> ParsedDoc:
             )
         )
 
-    return ParsedDoc(styles_raw=style_block, actions_raw=action_block, lines=lines)
+    return ParsedDoc(styles_raw=style_block, vocals_raw=vocal_block, lines=lines)
 
 
 def _split_sections(text: str) -> Tuple[str, str, str]:
     lines = text.splitlines()
-    idx_style = idx_action = idx_script = None
+    idx_style = idx_vocal = idx_script = None
 
     for i, ln in enumerate(lines):
         if idx_style is None and _STYLE_HDR.match(ln):
             idx_style = i
-        elif idx_action is None and _ACTION_HDR.match(ln):
-            idx_action = i
+        elif idx_vocal is None and _VOCAL_HDR.match(ln):
+            idx_vocal = i
         elif idx_script is None and _SCRIPT_HDR.match(ln):
             idx_script = i
 
@@ -104,17 +104,17 @@ def _split_sections(text: str) -> Tuple[str, str, str]:
 
     # ensures sections don’t run into each other.
     next_after_style = min(
-        [i for i in (idx_action, idx_script) if i is not None],
+        [i for i in (idx_vocal, idx_script) if i is not None],
         default=len(lines),
     )
-    next_after_action = idx_script if idx_script is not None else len(lines)
+    next_after_vocal = idx_script if idx_script is not None else len(lines)
 
     # extract blocks
     style_block = block(idx_style, next_after_style) if idx_style is not None else ""
-    action_block = block(idx_action, next_after_action) if idx_action is not None else ""
+    vocal_block = block(idx_vocal, next_after_vocal) if idx_vocal is not None else ""
     script_block = block(idx_script, None)
 
-    return style_block, action_block, script_block
+    return style_block, vocal_block, script_block
 
 
 def _to_nonempty_lines(block: str) -> List[str]:
@@ -152,7 +152,7 @@ _CHAR_TAG = re.compile(r"^\s*<[^>]+>\s*[:\-]?\s*")
 def build_ui_script(doc: ParsedDoc) -> str:
     """
     Input to the UI layer.
-      - Drop STYLE DESCRIPTION and ACTION DICTIONARY sections entirely.
+      - Drop STYLE DESCRIPTION and VOCAL DICTIONARY sections entirely.
       - Remove engine roles [Role].
       - Prefer <Character> for display; if missing, fall back to <role>.
       - Preserve inline cues (...) so users can see expressive guidance.

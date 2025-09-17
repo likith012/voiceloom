@@ -23,6 +23,7 @@ def get_manager() -> JobManager:
         jobs_dir=s.jobs_path,
         cache_dir=s.cache_path,
         google_api_key=s.google_api_key,
+        do_chunk=s.do_chunk,
         tts_model=s.tts_model,
         whisper_model=s.whisper_model,
         whisper_device=s.whisper_device,

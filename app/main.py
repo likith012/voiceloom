@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 
 from app.config.config import get_settings
-from app.core.logging import configure_logging  
+from app.utils.logging import configure_logging  
 from app.api.routes_jobs import router as jobs_router
 
 
