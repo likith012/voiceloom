@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional
 
-from app.core.config import get_settings
+from app.config.config import get_settings
 
 
 def _read(path: Path) -> Optional[str]:

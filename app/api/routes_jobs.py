@@ -1,7 +1,7 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.responses import FileResponse, JSONResponse
 
-from app.core.config import get_settings
+from app.config.config import get_settings
 from app.domain.schemas import (
     JobCreate,
     JobCreateResponse,

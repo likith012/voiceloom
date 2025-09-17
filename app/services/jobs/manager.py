@@ -11,7 +11,7 @@ from typing import Any, Dict, Optional, List
 from app.core.instructions import prepend_tts_instructions
 from app.domain.schemas import JobCreate, JobStatus, Manifest, SpeakerRegistry
 from app.domain.states import JobState, can_transition
-from app.domain.roles import resolve_registry
+from app.utils.roles import resolve_registry
 from app.services.synth.singlepass import synthesize_single_pass  
 from app.core.cache import make_cache_key, lookup_origin_job, record_origin_job
 from app.services.align.aligner import align_audio

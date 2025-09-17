@@ -2,10 +2,9 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
 from starlette.staticfiles import StaticFiles
 
-from app.core.config import get_settings
+from app.config.config import get_settings
 from app.core.logging import configure_logging  
 from app.api.routes_jobs import router as jobs_router
 
